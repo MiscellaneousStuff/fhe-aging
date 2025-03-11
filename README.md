@@ -71,12 +71,14 @@ ZhangY2017: coefs
 subGSE174422: betas info
 ```
 
-`betas`: Mthylation beta values - actual DNA methylation measurements that serve as input
+`betas`: Methylation beta values - actual DNA methylation measurements that serve as input
 features for the model.
+`X`
 
 `coefs`: Coefficient matrices for different biological clock models.
 Each named entry represents a different published biological age clock with its trained
 coefficients.
+`Weights?`
 
 `probeAnnotation21kdatMethUsed`: Annotation data for DNA methlyation probes (CpG sites)
 used in the models.
