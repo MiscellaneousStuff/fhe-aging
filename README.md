@@ -6,15 +6,40 @@ Original: [Implement an FHE-based Biological Age and Aging Pace Estimation ML Mo
 
 ## Plan of Attack
 
-1. Assess the accuracy and computational complexity of different approaches
-2. When we've found an aging model which has a good balance, then start porting to FHE
-   - This part might be reciprocal, will have to see what ends up being easy / hard to port.
-     However, in theory that assessment should be pretty deterministic based on Big O and operator
-     characteristics from the chosen model.
+### 1. Test Different Models + Assess Performance
 
-## Optimisation Characteristics
+1. Start with simpler models (linear regression-based clocks) as easier to implement in FHE
+2. Balance accuracy vs compute complexity - some models might use hundreds of CpG sites that would be expensive
+in FHE
+3. Horvath clock well established but uses elastic net regression with many features
+4. DunedinPACE measures aging pace rather than biological age, which might be interesting but more complex
 
-- Start with simpler models
+### 2. Balance FHE Implementation Feasibility
+
+1. Linear models most straightforward
+2. Avoid non-linear activation functions, if possible
+3. Consider feature count - Less CpG sites means faster FHE computation
+4. Some biological clocks use relatively few CpG sites (~10-50) which would be ideal (NOTE: Need to validate this)
+
+### 3. Port to Zama.ai's FHE Libraries
+
+1. Start with Concrete ML for higher-level abstractions
+2. Need to quantise model (using `brevitas-nn` / `concrete-ml`, etc.)
+3. Benchmark acc between original + FHE - expect precision loss (though this depends on implementation / model, etc.)
+4. Reduce multiplicative depth
+
+### 4. Optimise for Efficiency
+
+- Use concrete's compiler to analyse circuit depth / bottlenecks
+- Precision vs performance trade-off (this one is likely key)
+- Heavily consider preprocessing strategies pre-encryption to offload computation
+
+### 5. Deploy to HuggingFace Spaces
+
+1. Client: Encrypts methylation data
+2. Server: Processes encrypted data without decryption
+3. Client: Receives and decrypts the predicted biological age
+- Demo + sample data
 
 <details>
 <summar>Challenge Data</summary>
