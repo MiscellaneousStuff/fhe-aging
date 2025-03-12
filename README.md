@@ -8,7 +8,22 @@ Zama.ai Bounty for Season 8: [Implement an FHE-based Biological Age and Aging Pa
 
 - CpG group := (Cytosine - phosphate - Guanine)
   - Notable for role in gene regulation through methylation processes
-  
+
+## Age Modelling Considerations
+
+### Linear Models
+
+- Just polynomials of degree 1, very efficient representation in FHE applications
+
+## Graphing in Bioinformatics
+
+- Manhattan plot
+
+## Microarray Platforms
+
+- HumanMethylation450 BeadChip (released in 2008)
+ - Targets over 450k sites across the human genome
+
 ## Context
 
 [Human arrays](`/pyaging/tutorials/tutorial_dnam_illumina_human_array.ipynb`)
