@@ -93,6 +93,9 @@ def load_clock(clock_name: str, device: str, dir: str, logger, indent_level: int
     # Load the clock from the file
     clock = torch.load(weights_path, weights_only=False)
 
+    for name, param in clock.named_parameters():
+        print(f"Layer: {name} | Size: {param.size()} | Values : {param[:2]} \n")
+
     # Prepare clock for inference
     clock.to(torch.float64)
     clock.to(device)

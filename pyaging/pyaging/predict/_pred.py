@@ -7,6 +7,7 @@ from ._pred_utils import *
 
 def predict_age(
     adata: anndata.AnnData,
+    inference,
     clock_names: str = "horvath2013",
     dir: str = "pyaging_data",
     batch_size: int = 1024,
@@ -104,7 +105,8 @@ def predict_age(
         )
 
         # Perform age prediction using the model applying preprocessing and postprocessing steps
-        predicted_ages_tensor = predict_ages_with_model(adata, model, device, batch_size, logger, indent_level=2)
+        # predicted_ages_tensor = predict_ages_with_model(adata, model, device, batch_size, logger, indent_level=2)
+        predicted_ages_tensor = inference(adata, model, device, batch_size, logger, indent_level=2)
 
         # Add predicted ages and clock metadata to adata
         add_pred_ages_and_clock_metadata_adata(adata, model, predicted_ages_tensor, dir, logger, indent_level=2)
