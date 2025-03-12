@@ -2,8 +2,40 @@
 
 ## About
 
-Original: [Implement an FHE-based Biological Age and Aging Pace Estimation ML Model Using Zama Libraries](https://github.com/zama-ai/bounty-program/issues/143)
+Zama.ai Bounty for Season 8: [Implement an FHE-based Biological Age and Aging Pace Estimation ML Model Using Zama Libraries](https://github.com/zama-ai/bounty-program/issues/143)
 
+## Context
+
+[Human arrays](`/pyaging/tutorials/tutorial_dnam_illumina_human_array.ipynb`)
+
+## Age Prediction Context
+
+1. Models trained to predict chronological age of tissue based on biomarkers
+2. Delta betwen chronological age and real age used as marker to predict
+   - Mortality risk
+   - Disease states
+   - etc.
+
+## Glossary
+
+- CpG group := (Cytosine - phosphate - Guanine)
+  - Notable for role in gene regulation through methylation processes
+
+### Inputs and Outputs for Age Prediction / Age Pacing
+
+- Inputs (CgPs)
+- Outputs (Predicted chronological age)
+
+### Datasets and Models
+
+| Dataset | Model |
+| - | - |
+| Horvath | ElasticNet |
+| AltumAge | Deep Learning-based |
+| PCGrimAge | PCA based version of GrimAge |
+| GrimAge2 | Latest version of GrimAge ? |
+| DunedinPACE | Biomarker of the pace of aging |
+  
 ## Plan of Attack
 
 ### 1. Test Different Models + Assess Performance
@@ -42,7 +74,12 @@ in FHE
 - Demo + sample data
 
 <details>
-<summar>Challenge Data</summary>
+<summary>Number of Features per Dataset (for `pyaging`)</summary>
+
+</details>
+
+<details>
+<summary>Challenge Data</summary>
 
 ### Datasets
 
