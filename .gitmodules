@@ -1,6 +1,3 @@
 [submodule "dnaMethyAge"]
 	path = dnaMethyAge
 	url = https://github.com/yiluyucheng/dnaMethyAge
-[submodule "pyaging"]
-	path = pyaging
-	url = https://github.com/rsinghlab/pyaging
