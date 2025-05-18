@@ -18,7 +18,7 @@ from pyaging.logger import main_tqdm
 def predict_ages_with_model(
     adata: anndata.AnnData,
     model: pyagingModel,
-    device: str,
+    _,
     batch_size: int,
     logger,
     indent_level: int = 2,
@@ -44,10 +44,6 @@ def predict_ages_with_model(
     # Create an AnnLoader
     use_cuda = torch.cuda.is_available()
     dataloader = AnnLoader(adata, batch_size=batch_size, use_cuda=use_cuda)
-
-    # with torch.no_grad():
-    #     for param in model.parameters():
-    #         param.zero_()
 
     # Use the AnnLoader for batched prediction
     predictions = []
@@ -77,6 +73,24 @@ class PhenoAge(pyagingModel):
         mortality_score = 1 - torch.exp(-torch.exp(x) * (torch.exp(120 * l) - 1) / l)
         age = 141.50225 + torch.log(-0.00553 * torch.log(1 - mortality_score)) / 0.090165
         return age
+
+def get_model(model_name: str):
+    # Model to SKLearn
+    manual_coefficients = np.array([
+        -0.0336,  0.0095,  0.1953,  0.0954, -0.0120,  0.0268,  0.3306,  0.0019, 0.0554,  0.0804
+    ])
+    manual_intercept = np.array([
+        -19.9067
+    ])
+    sklearn_model = SKLearnElasticNet()
+    sklearn_model.n_features_in_ = len(manual_coefficients)
+    sklearn_model.coef_ = manual_coefficients
+    sklearn_model.intercept_ = manual_intercept
+    phenoage_cls = PhenoAge()
+    cml_model = CMElasticNet.from_sklearn_model(
+        sklearn_model, dataset_np, n_bits=16)
+    cml_model.compile(dataset_np)
+    return cml_model, phenoage_cls
 
 def run_fhe_model(
     cm_model: CMElasticNet,
@@ -113,24 +127,9 @@ if __name__ == "__main__":
     with torch.inference_mode():
         pred = clock(dataset_torch)
 
-    # Model to SKLearn
-    manual_coefficients = np.array([
-        -0.0336,  0.0095,  0.1953,  0.0954, -0.0120,  0.0268,  0.3306,  0.0019, 0.0554,  0.0804
-    ])
-    manual_intercept = np.array([
-        -19.9067
-    ])
-    sklearn_model = SKLearnElasticNet()
-    sklearn_model.n_features_in_ = len(manual_coefficients)
-    sklearn_model.coef_ = manual_coefficients
-    sklearn_model.intercept_ = manual_intercept
-
-    # FHE
-    phenoage_cls = PhenoAge()
-    cml_model = CMElasticNet.from_sklearn_model(
-        sklearn_model, dataset_np, n_bits=16)
-    cml_model.compile(dataset_np)
+    # Get model
+    cml_model, model_cls = get_model("phenoage")
 
     # Inference
-    result = run_fhe_model(cml_model, dataset_np, phenoage_cls)
+    result = run_fhe_model(cml_model, dataset_np, model_cls)
     print(result)
