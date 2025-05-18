@@ -34,20 +34,17 @@ def process_file(file_path):
 def predict(data_source, sample_data, uploaded_file, model_name):
     # Determine which data to use based on data_source
     if data_source == "upload" and uploaded_file is not None:
-        data = process_file(uploaded_file)
+        df = process_file(uploaded_file)
     else:
-        data = sample_data
+        df = sample_data
         
-    print(f"Received data for model {model_name}: {data[:50]}...")
+    print(f"Received data for model {model_name}, shape: {df.shape}")
     
-    if not data:
+    # Use df.empty to check if DataFrame is empty instead of "if not df"
+    if df.empty:
         return {"Status": "Error: No data provided"}
     
     try:
-        # Convert string data to dataframe
-        df = pd.read_csv(StringIO(data))
-        print(f"Parsed data shape: {df.shape}")
-        
         # Simulate a prediction result based on the model
         if model_name == "PhenoAge (Levine)":
             biological_age = np.random.normal(45, 10)
