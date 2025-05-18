@@ -2,7 +2,8 @@ import gradio as gr
 import pandas as pd
 import numpy as np
 from io import StringIO
-import os
+
+from lib import run_model_fhe
 
 # Sample data for testing
 def get_sample_data(model_name):
@@ -48,15 +49,6 @@ def predict(data_source, sample_data, uploaded_file, model_name):
         if model_name == "PhenoAge (Levine)":
             biological_age = np.random.normal(45, 10)
             aging_pace = np.random.normal(1.0, 0.2)
-        # elif model_name == "DNA Methylation (Horvath)":
-        #     biological_age = np.random.normal(50, 8)
-        #     aging_pace = np.random.normal(1.1, 0.15)
-        # elif model_name == "DunedinPACE":
-        #     biological_age = np.random.normal(40, 12)
-        #     aging_pace = np.random.normal(0.95, 0.25)
-        # else:  # GrimAge or any other
-        #     biological_age = np.random.normal(48, 9)
-        #     aging_pace = np.random.normal(1.05, 0.18)
         
         return {
             "Biological Age": round(biological_age, 1),
