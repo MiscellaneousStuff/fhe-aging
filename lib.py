@@ -74,6 +74,32 @@ class PhenoAge(pyagingModel):
         age = 141.50225 + torch.log(-0.00553 * torch.log(1 - mortality_score)) / 0.090165
         return age
 
+def get_dataset(dataset_name: str):
+    # Init Dataset
+    df = pd.read_pickle('pyaging_data/blood_chemistry_example.pkl')
+    adata = pya.preprocess.df_to_adata(df)
+    pya.pred.predict_age_fhe(adata, predict_ages_with_model, 'PhenoAge')
+
+    # Load Model Weights
+    device = "cpu"
+    weights_path = f"./pyaging_data/phenoage.pt"
+    clock = torch.load(weights_path, weights_only=False)
+    for name, param in clock.named_parameters():
+        print(f"Layer: {name} | Size: {param.size()} | Values : {param[:2]} \n")
+    clock.to(torch.float64)
+    clock.to(device)
+    clock.eval()
+
+    # Dataset
+    dataset = df.iloc[:, 0:10]
+    dataset_np = dataset.to_numpy()
+    phenoages_np = np.array(adata.obs["phenoage"], dtype=np.float64)
+    dataset_torch = torch.tensor(dataset_np, dtype=torch.float64)
+    phenoages_torch = torch.tensor(phenoages_np, dtype=torch.float64)
+    with torch.inference_mode():
+        pred = clock(dataset_torch)
+    return dataset_np
+
 def get_model(model_name: str):
     # Model to SKLearn
     manual_coefficients = np.array([
@@ -103,29 +129,7 @@ def run_fhe_model(
     return result
 
 if __name__ == "__main__":
-    # Init Dataset
-    df = pd.read_pickle('pyaging_data/blood_chemistry_example.pkl')
-    adata = pya.preprocess.df_to_adata(df)
-    pya.pred.predict_age_fhe(adata, predict_ages_with_model, 'PhenoAge')
-
-    # Load Model Weights
-    device = "cpu"
-    weights_path = f"./pyaging_data/phenoage.pt"
-    clock = torch.load(weights_path, weights_only=False)
-    for name, param in clock.named_parameters():
-        print(f"Layer: {name} | Size: {param.size()} | Values : {param[:2]} \n")
-    clock.to(torch.float64)
-    clock.to(device)
-    clock.eval()
-
-    # Dataset
-    dataset = df.iloc[:, 0:10]
-    dataset_np = dataset.to_numpy()
-    phenoages_np = np.array(adata.obs["phenoage"], dtype=np.float64)
-    dataset_torch = torch.tensor(dataset_np, dtype=torch.float64)
-    phenoages_torch = torch.tensor(phenoages_np, dtype=torch.float64)
-    with torch.inference_mode():
-        pred = clock(dataset_torch)
+    dataset_np = get_dataset("phenoage")    
 
     # Get model
     cml_model, model_cls = get_model("phenoage")

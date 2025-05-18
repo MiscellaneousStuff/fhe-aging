@@ -3,29 +3,32 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 
-from lib import run_model_fhe
+from lib import run_fhe_model
+
+PHENOAGE = """,albumin,creatinine,glucose,log_crp,lymphocyte_percent,mean_cell_volume,red_cell_distribution_width,alkaline_phosphatase,white_blood_cell_count,age
+patient1,51.8,87.2,4.5,-0.2,27.9,92.4,13.9,123.5,6.037100000000001,70.2"""
 
 # Sample data for testing
 def get_sample_data(model_name):
     samples = {
-        # "DNA Methylation (Horvath)": "cg00000292,cg00002426,cg00003994\n0.782,0.496,0.901",
-        "PhenoAge (Levine)": "albumin,creatinine,glucose,c_reactive_protein\n4.2,0.9,85,1.2",
-        # "DunedinPACE": "cg05575921,cg21566642,cg01940273\n0.892,0.734,0.211",
-        # "GrimAge": "feature1,feature2,feature3,feature4\n0.5,0.6,0.7,0.8"
+        "PhenoAge (Levine)": PHENOAGE,
     }
-    return samples.get(model_name, "")
+    csv_data = samples.get(model_name, "")
+    # Convert CSV string to DataFrame
+    if csv_data:
+        return pd.read_csv(StringIO(csv_data))
+    return pd.DataFrame()
 
 # Process uploaded file
 def process_file(file_path):
     if file_path is None:
-        return ""
+        return pd.DataFrame()
     
     try:
-        with open(file_path, 'r') as file:
-            return file.read()
+        return pd.read_csv(file_path)
     except Exception as e:
         print(f"Error reading file: {e}")
-        return ""
+        return pd.DataFrame()
 
 # Simple predict function for testing
 def predict(data_source, sample_data, uploaded_file, model_name):
@@ -64,14 +67,11 @@ def predict(data_source, sample_data, uploaded_file, model_name):
 # Create a simple test app
 def create_test_app():
     models = [
-        # "DNA Methylation (Horvath)",
         "PhenoAge (Levine)",
-        # "DunedinPACE",
-        # "GrimAge"
     ]
     
     with gr.Blocks() as demo:
-        gr.Markdown("""# Biological Age Estimation - LOCAL TEST
+        gr.Markdown("""# Biological Age Estimation
 
 [Zama AI Bounty](https://github.com/zama-ai/bounty-program/issues/143?utm_campaign=49915104-Bounty%20Program&utm_medium=email&_hsmi=109371217&utm_content=109371217&utm_source=hs_email)""")
         
@@ -90,10 +90,10 @@ def create_test_app():
                 )
             
             with gr.Column(scale=2):
-                sample_data = gr.Textbox(
-                    label="Sample Data (CSV format)", 
+                # Use DataFrame component instead of Textbox
+                sample_data = gr.DataFrame(
                     value=get_sample_data("PhenoAge (Levine)"),
-                    lines=10,
+                    label="Sample Data",
                     interactive=True,
                     visible=True
                 )
