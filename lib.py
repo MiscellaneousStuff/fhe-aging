@@ -1,32 +1,18 @@
 import pandas as pd 
 import pyaging as pya
-
 import numpy as np
-from sklearn.linear_model import ElasticNet as SKLearnElasticNet
-
-from pyaging.models import *
-from pyaging.predict._postprocessing import *
-from pyaging.predict._preprocessing import *
-
-from concrete.ml.sklearn import ElasticNet as CMElasticNet
-
-import numpy as np
-import pandas as pd
 import torch
-
 import anndata
 
+from sklearn.linear_model import ElasticNet as SKLearnElasticNet
+from concrete.ml.sklearn import ElasticNet as CMElasticNet
+from anndata.experimental.pytorch import AnnLoader
+
 from pyaging.models import *
 from pyaging.predict._postprocessing import *
 from pyaging.predict._preprocessing import *
-
 from pyaging.utils import progress
-
-from anndata.experimental.pytorch import AnnLoader
-
 from pyaging.logger import main_tqdm
-
-import numpy as np
 
 @progress("Predict ages with model")
 def predict_ages_with_model(
@@ -37,57 +23,6 @@ def predict_ages_with_model(
     logger,
     indent_level: int = 2,
 ) -> torch.Tensor:
-    """
-    Predict biological ages using a trained model and input data.
-
-    This function takes a machine learning model and input data, and returns predictions made by the model.
-    It's primarily used for estimating biological ages based on various biological markers. The function
-    assumes that the model is already trained. A dataloader is used because of possible memory constraints
-    for large datasets.
-
-    Parameters
-    ----------
-    adata : anndata.AnnData
-        The AnnData object containing the dataset. Its `.X` attribute is expected to be a matrix where rows
-        correspond to samples and columns correspond to features.
-
-    model : pyagingModel
-        The pyagingModel of the aging clock of interest.
-
-    device : str
-        Device to move AnnData to during inference. Eithe 'cpu' or 'cuda'.
-
-    batch_size : int
-        Batch size for the AnnLoader object to predict age.
-
-    logger : Logger
-        A logger object for logging the progress or any relevant information during the prediction process.
-
-    indent_level : int, optional
-        The indentation level for logging messages, by default 2.
-
-    Returns
-    -------
-    predictions : torch.Tensor
-        An array of predicted ages or biological markers, as returned by the model.
-
-    Notes
-    -----
-    Ensure that the data is preprocessed (e.g., scaled, normalized) as required by the model before
-    passing it to this function. The model should be in evaluation mode if it's a type that has different
-    behavior during training and inference (e.g., PyTorch models).
-
-    The exact nature of the predictions (e.g., age, biological markers) depends on the model being used.
-
-    Examples
-    --------
-    >>> model = load_pretrained_model()
-    >>> predictions = predict_ages_with_model(model, "cpu", logger)
-    >>> print(predictions[:5])
-    [34.5, 29.3, 47.8, 50.1, 42.6]
-
-    """
-
     # If there is a preprocessing step
     if model.preprocess_name is not None:
         logger.info(
