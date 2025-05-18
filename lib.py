@@ -143,24 +143,33 @@ class PhenoAge(pyagingModel):
         age = 141.50225 + torch.log(-0.00553 * torch.log(1 - mortality_score)) / 0.090165
         return age
 
+def run_fhe_model(
+    cm_model: CMElasticNet,
+    X: np.array,
+    handler_cls: pyagingModel
+) -> torch.tensor:
+    preprocessed_X = handler_cls.preprocess(X)
+    y_pred_fhe = cm_model.predict(preprocessed_X, fhe="execute")
+    result = handler_cls.postprocess(torch.tensor(y_pred_fhe))
+    return result
+
 if __name__ == "__main__":
-    # Torch Inference to Init PhenoAge
+    # Init Dataset
     df = pd.read_pickle('pyaging_data/blood_chemistry_example.pkl')
     adata = pya.preprocess.df_to_adata(df)
-
     pya.pred.predict_age_fhe(adata, predict_ages_with_model, 'PhenoAge')
 
+    # Load Model Weights
     device = "cpu"
     weights_path = f"./pyaging_data/phenoage.pt"
     clock = torch.load(weights_path, weights_only=False)
-
     for name, param in clock.named_parameters():
         print(f"Layer: {name} | Size: {param.size()} | Values : {param[:2]} \n")
-
     clock.to(torch.float64)
     clock.to(device)
     clock.eval()
 
+    # Dataset
     dataset = df.iloc[:, 0:10]
     dataset_np = dataset.to_numpy()
     phenoages_np = np.array(adata.obs["phenoage"], dtype=np.float64)
@@ -169,7 +178,7 @@ if __name__ == "__main__":
     with torch.inference_mode():
         pred = clock(dataset_torch)
 
-    # Convert to FHE
+    # Model to SKLearn
     manual_coefficients = np.array([
         -0.0336,  0.0095,  0.1953,  0.0954, -0.0120,  0.0268,  0.3306,  0.0019, 0.0554,  0.0804
     ])
@@ -181,15 +190,12 @@ if __name__ == "__main__":
     sklearn_model.coef_ = manual_coefficients
     sklearn_model.intercept_ = manual_intercept
 
-    phenoage_post = PhenoAge()
-
+    # FHE
+    phenoage_cls = PhenoAge()
     cml_model = CMElasticNet.from_sklearn_model(
         sklearn_model, dataset_np, n_bits=16)
-
     cml_model.compile(dataset_np)
 
-    y_pred_fhe = cml_model.predict(dataset_np, fhe="execute")
-
-    fhe_phenoages = phenoage_post.postprocess(torch.tensor(y_pred_fhe))
-
-    print("fhe_phenoages:", fhe_phenoages)
+    # Inference
+    result = run_fhe_model(cml_model, dataset_np, phenoage_cls)
+    print(result)
