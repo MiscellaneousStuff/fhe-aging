@@ -82,7 +82,6 @@ if __name__ == "__main__":
     
     dataset_np = get_dataset(model)
     cml_model, model_cls = get_model(model, dataset_np)
-    result = run_fhe_model(cml_model, dataset_np, model_cls)
 
     if not os.path.exists(fhe_directory):
         dev = FHEModelDev(
@@ -90,12 +89,14 @@ if __name__ == "__main__":
             model=cml_model)
         dev.save()
 
+    # Input Data
+    input_data = dataset_np[0:1, :]
+    input_data = model_cls.preprocess(torch.tensor(input_data)).numpy()
+
     # Setup the client
     client = FHEModelClient(path_dir=fhe_directory, key_dir="/tmp/keys_client")
     serialized_evaluation_keys = client.get_serialized_evaluation_keys()
-    encrypted_data = client.quantize_encrypt_serialize(
-        dataset_np[0:1, :]
-    )
+    encrypted_data = client.quantize_encrypt_serialize(input_data)
 
     # Setup the server
     server = FHEModelServer(path_dir=fhe_directory)
