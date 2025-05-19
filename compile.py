@@ -1,3 +1,4 @@
+import os
 import pandas as pd 
 import numpy as np
 from pathlib import Path
@@ -9,7 +10,7 @@ from pyaging.predict._postprocessing import *
 from pyaging.predict._preprocessing import *
 
 from concrete.ml.sklearn import ElasticNet as CMElasticNet
-from concrete.ml.deployment import FHEModelDev
+from concrete.ml.deployment import FHEModelDev, FHEModelClient, FHEModelServer
 
 class PhenoAge(pyagingModel):
     def __init__(self):
@@ -77,12 +78,33 @@ def run_fhe_model(
 if __name__ == "__main__":
     model = "phenoage"
 
+    fhe_directory = str(Path("fhe_models") / Path(model))
+    
     dataset_np = get_dataset(model)
     cml_model, model_cls = get_model(model, dataset_np)
     result = run_fhe_model(cml_model, dataset_np, model_cls)
 
-    dev = FHEModelDev(
-        path_dir=str(Path("fhe_models") / Path(model)),
-        model=cml_model)
-    
-    dev.save()
+    if not os.path.exists(fhe_directory):
+        dev = FHEModelDev(
+            path_dir=fhe_directory,
+            model=cml_model)
+        dev.save()
+
+    # Setup the client
+    client = FHEModelClient(path_dir=fhe_directory, key_dir="/tmp/keys_client")
+    serialized_evaluation_keys = client.get_serialized_evaluation_keys()
+    encrypted_data = client.quantize_encrypt_serialize(
+        dataset_np[0:1, :]
+    )
+
+    # Setup the server
+    server = FHEModelServer(path_dir=fhe_directory)
+    server.load()
+
+    # Server processes the encrypted data
+    encrypted_result = server.run(encrypted_data, serialized_evaluation_keys)
+
+    # Client decrypts the result
+    result = client.deserialize_decrypt_dequantize(encrypted_result)
+    final_result = model_cls.postprocess(torch.tensor(result))
+    print(final_result)
