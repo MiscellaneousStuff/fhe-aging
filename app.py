@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 
-from lib import run_fhe_model
+# from server import get_dataset, get_model, run_fhe_model
 
 PHENOAGE = """,albumin,creatinine,glucose,log_crp,lymphocyte_percent,mean_cell_volume,red_cell_distribution_width,alkaline_phosphatase,white_blood_cell_count,age
 patient1,51.8,87.2,4.5,-0.2,27.9,92.4,13.9,123.5,6.037100000000001,70.2"""
@@ -45,18 +45,25 @@ def predict(data_source, sample_data, uploaded_file, model_name):
         return {"Status": "Error: No data provided"}
     
     try:
-        # Simulate a prediction result based on the model
-        if model_name == "PhenoAge (Levine)":
-            biological_age = np.random.normal(45, 10)
-            aging_pace = np.random.normal(1.0, 0.2)
-        
-        return {
-            "Biological Age": round(biological_age, 1),
-            "Aging Pace": round(aging_pace, 2),
-            "Model Used": model_name,
-            "Status": f"Processed with {model_name} using FHE"
-        }
-            
+        print(">>> gradio: get dataset")
+        dataset_np = get_dataset("phenoage")
+        dataset_np = dataset_np[0:1, :]
+
+        # Get model
+        print(">>> gradio: get model")
+        cml_model, model_cls = get_model("phenoage", dataset_np)
+
+        # Wrap the FHE execution in a try-except block with proper cleanup
+        try:
+            # Inference
+            print(">>> gradio: run fhe model")
+            result = run_fhe_model(cml_model, dataset_np, model_cls)
+            print(result)
+            return {"Status": "Success", "Result": result.tolist() if hasattr(result, 'tolist') else result}
+        except Exception as inner_e:
+            print(f"FHE execution error: {str(inner_e)}")
+            return {"Status": f"FHE Error: {str(inner_e)}"}
+
     except Exception as e:
         print(f"Error in prediction: {str(e)}")
         return {"Status": f"Error: {str(e)}"}
