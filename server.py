@@ -10,41 +10,61 @@ from concrete.ml.deployment import FHEModelDev, FHEModelClient, FHEModelServer
 
 app = Flask(__name__)
 
-# Global variables to store model and keys
-model_name = "phenoage"
-fhe_directory = str(Path("fhe_models") / Path(model_name))
-client = None
-server = None
-model_cls = None
+# Dictionary to store model-specific resources
+models = {}
 
-def initialize_fhe_services():
-    global client, server, model_cls
+def initialize_model(model_name):
+    """Initialize a specific model and its FHE components"""
+    if model_name in models:
+        # Model already initialized
+        return True
     
-    # Get dataset for model initialization (if needed)
-    dataset_np = get_dataset(model_name)
+    try:
+        fhe_directory = str(Path("fhe_models") / Path(model_name))
+        
+        # Get dataset for model initialization
+        dataset_np = get_dataset(model_name)
+        
+        # Get the model
+        cml_model, model_cls = get_model(model_name, dataset_np)
+        
+        # Create FHE directory if it doesn't exist
+        if not os.path.exists(fhe_directory):
+            dev = FHEModelDev(
+                path_dir=fhe_directory,
+                model=cml_model)
+            dev.save()
+        
+        # Setup the client
+        client = FHEModelClient(path_dir=fhe_directory, key_dir=f"/tmp/keys_client_{model_name}")
+        
+        # Setup the server
+        server = FHEModelServer(path_dir=fhe_directory)
+        server.load()
+        
+        # Store all model-specific components
+        models[model_name] = {
+            "client": client,
+            "server": server,
+            "model_cls": model_cls
+        }
+        
+        print(f"Model '{model_name}' initialized successfully")
+        return True
     
-    # Get the model
-    cml_model, model_cls = get_model(model_name, dataset_np)
-    
-    # Create FHE directory if it doesn't exist
-    if not os.path.exists(fhe_directory):
-        dev = FHEModelDev(
-            path_dir=fhe_directory,
-            model=cml_model)
-        dev.save()
-    
-    # Setup the client
-    client = FHEModelClient(path_dir=fhe_directory, key_dir="/tmp/keys_client")
-    
-    # Setup the server
-    server = FHEModelServer(path_dir=fhe_directory)
-    server.load()
-    
-    print("FHE services initialized successfully")
+    except Exception as e:
+        print(f"Error initializing model '{model_name}': {str(e)}")
+        return False
 
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "ok"})
+
+@app.route('/available_models', methods=['GET'])
+def available_models():
+    """Return a list of available models"""
+    # Currently only 'phenoage' is supported, but this can be extended
+    return jsonify({"available_models": ["phenoage"]})
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -52,8 +72,26 @@ def predict():
         # Get input data from request
         data = request.json
         
-        if not data or 'features' not in data:
+        if not data:
+            return jsonify({"error": "Invalid request: no JSON data provided"}), 400
+        
+        # Get model name from request, default to "phenoage" if not specified
+        model_name = data.get('model', 'phenoage')
+        
+        if not data.get('features'):
             return jsonify({"error": "Invalid input: 'features' field is required"}), 400
+        
+        # Initialize the model if not already done
+        if model_name not in models:
+            success = initialize_model(model_name)
+            if not success:
+                return jsonify({"error": f"Failed to initialize model '{model_name}'"}), 500
+        
+        # Get model components
+        model_components = models[model_name]
+        client = model_components["client"]
+        server = model_components["server"]
+        model_cls = model_components["model_cls"]
         
         # Convert input to numpy array
         input_data = np.array(data['features'], dtype=np.float64)
@@ -84,15 +122,18 @@ def predict():
         final_result_list = final_result.tolist()
         
         return jsonify({
+            "model": model_name,
             "predictions": final_result_list
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    # Initialize FHE models and services
-    initialize_fhe_services()
+    # Initialize the default model (phenoage)
+    initialize_model("phenoage")
     
     # Start the Flask server
     app.run(host='0.0.0.0', port=5000, debug=False)
