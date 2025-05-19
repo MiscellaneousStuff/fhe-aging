@@ -1,13 +1,15 @@
 import pandas as pd 
 import numpy as np
+from pathlib import Path
 
 from sklearn.linear_model import ElasticNet as SKLearnElasticNet
-from concrete.ml.sklearn import ElasticNet as CMElasticNet
-from anndata.experimental.pytorch import AnnLoader
 
 from pyaging.models import *
 from pyaging.predict._postprocessing import *
 from pyaging.predict._preprocessing import *
+
+from concrete.ml.sklearn import ElasticNet as CMElasticNet
+from concrete.ml.deployment import FHEModelDev
 
 class PhenoAge(pyagingModel):
     def __init__(self):
@@ -73,11 +75,14 @@ def run_fhe_model(
     return result
 
 if __name__ == "__main__":
-    dataset_np = get_dataset("phenoage")
+    model = "phenoage"
 
-    # Get model
-    cml_model, model_cls = get_model("phenoage", dataset_np)
-
-    # Inference
+    dataset_np = get_dataset(model)
+    cml_model, model_cls = get_model(model, dataset_np)
     result = run_fhe_model(cml_model, dataset_np, model_cls)
-    print(result)
+
+    dev = FHEModelDev(
+        path_dir=str(Path("fhe_models") / Path(model)),
+        model=cml_model)
+    
+    dev.save()

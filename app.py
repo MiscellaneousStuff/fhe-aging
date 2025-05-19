@@ -1,9 +1,6 @@
 import gradio as gr
 import pandas as pd
-import numpy as np
 from io import StringIO
-
-# from server import get_dataset, get_model, run_fhe_model
 
 PHENOAGE = """,albumin,creatinine,glucose,log_crp,lymphocyte_percent,mean_cell_volume,red_cell_distribution_width,alkaline_phosphatase,white_blood_cell_count,age
 patient1,51.8,87.2,4.5,-0.2,27.9,92.4,13.9,123.5,6.037100000000001,70.2"""
